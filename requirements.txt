@@ -1,0 +1,38 @@
+# Deepfake Detection Requirements
+# Optimized for RTX 4060 + i7-13650HX + 24GB RAM
+
+# Core ML/DL libraries with CUDA support
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Computer Vision
+opencv-python>=4.8.0
+opencv-python-headless>=4.8.0
+
+# Data handling
+numpy>=1.24.0
+pandas>=2.0.0
+Pillow>=10.0.0
+
+# Face detection
+facenet-pytorch>=2.5.0
+mtcnn>=0.1.1
+dlib>=19.24.0
+
+# Model architectures
+timm>=0.9.0
+efficientnet-pytorch>=0.7.1
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tqdm>=4.65.0
+
+# Video processing
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.8
+
+# Utilities
+scikit-learn>=1.3.0
+albumentations>=1.3.0
