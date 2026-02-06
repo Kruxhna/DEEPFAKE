@@ -14,6 +14,9 @@ import numpy as np
 from tqdm import tqdm
 import random
 
+# Face detection
+from face_detector import FaceDetector, extract_face_from_frame
+
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -38,12 +41,12 @@ def setup_directories():
     print(f"   {TEST_DIR}/fake/")
 
 
-def extract_frames_from_video(video_path, output_dir, num_frames=10, prefix=""):
-    """Extract frames from a video file"""
+def extract_frames_from_video(video_path, output_dir, num_frames=10, prefix="", use_faces=False, face_detector=None):
+    """Extract frames from a video file, optionally extracting face regions"""
     cap = cv2.VideoCapture(video_path)
     
     if not cap.isOpened():
-        print(f"⚠️ Could not open: {video_path}")
+        print(f"Warning: Could not open: {video_path}")
         return 0
     
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -60,16 +63,24 @@ def extract_frames_from_video(video_path, output_dir, num_frames=10, prefix=""):
         ret, frame = cap.read()
         
         if ret:
+            if use_faces and face_detector is not None:
+                # Extract face from frame
+                face_crop, face_found = face_detector.extract_face_or_frame(frame)
+                # Convert RGB back to BGR for saving
+                frame_to_save = cv2.cvtColor(face_crop, cv2.COLOR_RGB2BGR)
+            else:
+                frame_to_save = frame
+            
             filename = f"{prefix}frame_{i:03d}.jpg"
             filepath = os.path.join(output_dir, filename)
-            cv2.imwrite(filepath, frame)
+            cv2.imwrite(filepath, frame_to_save)
             saved += 1
     
     cap.release()
     return saved
 
 
-def prepare_from_json(videos_dir, metadata_json, frames_per_video=10, test_split=0.2):
+def prepare_from_json(videos_dir, metadata_json, frames_per_video=10, test_split=0.2, use_faces=False):
     """
     Prepare dataset from Kaggle DFDC format (videos + metadata.json)
     
@@ -79,14 +90,29 @@ def prepare_from_json(videos_dir, metadata_json, frames_per_video=10, test_split
         "video2.mp4": {"label": "REAL"},
         ...
     }
+    
+    Args:
+        videos_dir: Directory containing video files
+        metadata_json: Path to metadata.json file
+        frames_per_video: Number of frames to extract per video
+        test_split: Fraction of data to use for testing
+        use_faces: If True, extract face crops instead of full frames
     """
     setup_directories()
+    
+    # Initialize face detector if needed
+    face_detector = None
+    if use_faces:
+        print("[FaceDetection] Initializing face detector...")
+        face_detector = FaceDetector()
     
     # Load metadata
     with open(metadata_json, 'r') as f:
         metadata = json.load(f)
     
-    print(f"📊 Found {len(metadata)} videos in metadata")
+    print(f"Found {len(metadata)} videos in metadata")
+    if use_faces:
+        print("[FaceDetection] Face detection ENABLED - extracting face crops")
     
     # Process each video
     real_count = 0
@@ -99,7 +125,7 @@ def prepare_from_json(videos_dir, metadata_json, frames_per_video=10, test_split
     train_videos = videos[:split_idx]
     test_videos = videos[split_idx:]
     
-    print(f"\n🔄 Processing {len(train_videos)} training videos...")
+    print(f"\nProcessing {len(train_videos)} training videos...")
     for video_name, info in tqdm(train_videos):
         video_path = os.path.join(videos_dir, video_name)
         
@@ -116,9 +142,9 @@ def prepare_from_json(videos_dir, metadata_json, frames_per_video=10, test_split
             prefix = f"real_{real_count:04d}_"
             real_count += 1
         
-        extract_frames_from_video(video_path, output_dir, frames_per_video, prefix)
+        extract_frames_from_video(video_path, output_dir, frames_per_video, prefix, use_faces, face_detector)
     
-    print(f"\n🔄 Processing {len(test_videos)} test videos...")
+    print(f"\nProcessing {len(test_videos)} test videos...")
     for video_name, info in tqdm(test_videos):
         video_path = os.path.join(videos_dir, video_name)
         
@@ -132,7 +158,7 @@ def prepare_from_json(videos_dir, metadata_json, frames_per_video=10, test_split
             output_dir = os.path.join(TEST_DIR, "real")
         
         prefix = f"{os.path.splitext(video_name)[0]}_"
-        extract_frames_from_video(video_path, output_dir, frames_per_video, prefix)
+        extract_frames_from_video(video_path, output_dir, frames_per_video, prefix, use_faces, face_detector)
     
     print_dataset_stats()
 
@@ -302,11 +328,13 @@ def main():
                         help='Show current dataset statistics')
     parser.add_argument('--frames', type=int, default=10,
                         help='Number of frames to extract per video (default: 10)')
+    parser.add_argument('--use-faces', action='store_true',
+                        help='Extract face crops instead of full frames (recommended for better accuracy)')
     
     args = parser.parse_args()
     
     if args.from_json:
-        prepare_from_json(args.from_json[0], args.from_json[1], args.frames)
+        prepare_from_json(args.from_json[0], args.from_json[1], args.frames, use_faces=args.use_faces)
     elif args.interactive:
         prepare_with_interactive_labeling(args.interactive, args.frames)
     elif args.two_folders:

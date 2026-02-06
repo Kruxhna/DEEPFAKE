@@ -14,17 +14,26 @@ from tqdm import tqdm
 import argparse
 from datetime import datetime
 
-from config import DEVICE, IMAGE_SIZE, FRAMES_PER_VIDEO, MODEL_DIR, OUTPUT_DIR
+from config import (DEVICE, IMAGE_SIZE, FRAMES_PER_VIDEO, MODEL_DIR, OUTPUT_DIR,
+                    FAKE_THRESHOLD, SUSPICIOUS_THRESHOLD)
 from model import DeepfakeDetector
 from dataset import get_transforms
+from face_detector import FaceDetector
 
 
 class DeepfakeInference:
-    """Inference class for deepfake detection"""
+    """Inference class for deepfake detection with face detection support"""
     
-    def __init__(self, model_path=None):
+    def __init__(self, model_path=None, use_face_detection=True):
         self.device = DEVICE
         self.transform = get_transforms(is_training=False)
+        self.use_face_detection = use_face_detection
+        
+        # Initialize face detector
+        if use_face_detection:
+            self.face_detector = FaceDetector(device=self.device)
+        else:
+            self.face_detector = None
         
         # Load model
         self.model = DeepfakeDetector()
@@ -32,9 +41,9 @@ class DeepfakeInference:
         if model_path and os.path.exists(model_path):
             checkpoint = torch.load(model_path, map_location=self.device)
             self.model.load_state_dict(checkpoint['model_state_dict'])
-            print(f"✅ Loaded model from: {model_path}")
+            print(f"[OK] Loaded model from: {model_path}")
         else:
-            print("⚠️ No pretrained model found. Using random weights.")
+            print("[Warning] No pretrained model found. Using random weights.")
         
         self.model = self.model.to(self.device)
         self.model.eval()
@@ -44,13 +53,18 @@ class DeepfakeInference:
         self.colors = {'REAL': (0, 255, 0), 'FAKE': (0, 0, 255)}  # BGR
     
     def preprocess_image(self, image):
-        """Preprocess image for inference"""
+        """Preprocess image for inference, with optional face detection"""
         if isinstance(image, str):
             image = cv2.imread(image)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         elif isinstance(image, np.ndarray):
             if len(image.shape) == 3 and image.shape[2] == 3:
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Extract face if face detection is enabled
+        if self.use_face_detection and self.face_detector is not None:
+            face_crop, face_found = self.face_detector.extract_face_or_frame(image, target_size=(IMAGE_SIZE, IMAGE_SIZE))
+            image = face_crop  # Use face crop (already RGB)
         
         # torchvision transforms work directly on numpy arrays/PIL images
         tensor = self.transform(image).unsqueeze(0).to(self.device)
@@ -120,13 +134,24 @@ class DeepfakeInference:
         fake_probs = [p['probabilities']['FAKE'] for p in frame_predictions]
         avg_fake_prob = np.mean(fake_probs)
         
+        # Three-tier classification for better sensitivity
+        if avg_fake_prob >= FAKE_THRESHOLD:
+            verdict = 'FAKE'
+            confidence = avg_fake_prob
+        elif avg_fake_prob >= SUSPICIOUS_THRESHOLD:
+            verdict = 'SUSPICIOUS'
+            confidence = 0.5 + (avg_fake_prob - SUSPICIOUS_THRESHOLD) / (FAKE_THRESHOLD - SUSPICIOUS_THRESHOLD) * 0.5
+        else:
+            verdict = 'REAL'
+            confidence = 1 - avg_fake_prob
+        
         video_result = {
             'video_path': video_path,
             'total_frames': total_frames,
             'sampled_frames': len(frame_predictions),
             'average_fake_probability': avg_fake_prob,
-            'verdict': 'FAKE' if avg_fake_prob > 0.5 else 'REAL',
-            'confidence': max(avg_fake_prob, 1 - avg_fake_prob),
+            'verdict': verdict,
+            'confidence': confidence,
             'frame_predictions': frame_predictions
         }
         
@@ -193,7 +218,7 @@ class DeepfakeInference:
         
         # Final verdict
         axes[1, 1].axis('off')
-        verdict_color = '#e74c3c' if result['verdict'] == 'FAKE' else '#2ecc71'
+        verdict_color = '#e74c3c' if result['verdict'] == 'FAKE' else ('#f39c12' if result['verdict'] == 'SUSPICIOUS' else '#2ecc71')
         axes[1, 1].text(0.5, 0.6, result['verdict'], fontsize=48, fontweight='bold',
                         ha='center', va='center', color=verdict_color,
                         transform=axes[1, 1].transAxes)
