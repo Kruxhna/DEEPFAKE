@@ -56,6 +56,14 @@ FRAMES_PER_VIDEO = 32  # Number of frames to sample per video
 FACE_DETECTION_CONFIDENCE = 0.9
 
 # ============================================
+# DETECTION THRESHOLDS (Tuned for sensitivity)
+# ============================================
+# Lower threshold = more sensitive to fakes
+FAKE_THRESHOLD = 0.42  # Above this = FAKE
+SUSPICIOUS_THRESHOLD = 0.38  # 0.38+ = SUSPICIOUS, above FAKE_THRESHOLD = FAKE
+# Below SUSPICIOUS_THRESHOLD (0.38) = REAL
+
+# ============================================
 # DATA AUGMENTATION
 # ============================================
 AUGMENTATION_PROBABILITY = 0.5
