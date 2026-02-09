@@ -42,7 +42,7 @@ PRETRAINED = True
 # ============================================
 # TRAINING CONFIGURATION (Optimized for 24GB RAM + RTX 4060)
 # ============================================
-BATCH_SIZE = 32  # Can handle this with RTX 4060
+BATCH_SIZE = 64  # Can handle this with RTX 4060
 ACCUMULATION_STEPS = 2  # Effective batch size = 64
 EPOCHS = 20
 LEARNING_RATE = 1e-4
