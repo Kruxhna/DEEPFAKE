@@ -1,9 +1,5 @@
 # 🎭 Deepfake Detection System
 
-**Optimized for:** Intel i7-13650HX + NVIDIA RTX 4060 + 24GB RAM
-
-A state-of-the-art deepfake detection system using EfficientNet with GPU acceleration.
-
 ---
 
 ## 🚀 Quick Start
