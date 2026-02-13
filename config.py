@@ -11,7 +11,7 @@ import os
 # ============================================
 # Auto-detect CUDA device
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-NUM_WORKERS = 8  # i7-13650HX has 24 threads, use 8 for data loading
+NUM_WORKERS = 0  # Set to 0 for Windows to avoid hanging/freezing
 PIN_MEMORY = True  # Enable for faster GPU transfer
 
 # GPU Memory Optimization for RTX 4060 (8GB VRAM)
@@ -42,11 +42,17 @@ PRETRAINED = True
 # ============================================
 # TRAINING CONFIGURATION (Optimized for 24GB RAM + RTX 4060)
 # ============================================
-BATCH_SIZE = 64  # Can handle this with RTX 4060
+BATCH_SIZE = 32  # Can handle this with RTX 4060
 ACCUMULATION_STEPS = 2  # Effective batch size = 64
-EPOCHS = 20
-LEARNING_RATE = 1e-4
+EPOCHS = 10  # Reduced for fine-tuning (increase for training from scratch)
+LEARNING_RATE = 1e-5  # Lower LR for fine-tuning (use 1e-4 for training from scratch)
 WEIGHT_DECAY = 1e-5
+
+# ============================================
+# INCREMENTAL TRAINING / FINE-TUNING
+# ============================================
+# Set to path of existing checkpoint to resume/fine-tune, or None to train from scratch
+RESUME_CHECKPOINT = os.path.join(MODEL_DIR, 'best_model.pth') if os.path.exists(os.path.join(MODEL_DIR, 'best_model.pth')) else None
 
 # ============================================
 # IMAGE/VIDEO PROCESSING
@@ -74,8 +80,11 @@ AUGMENTATION_PROBABILITY = 0.5
 LOG_INTERVAL = 10  # Log every N batches
 SAVE_INTERVAL = 5  # Save model every N epochs
 
-print(f"🖥️  Device: {DEVICE}")
-print(f"📊 CUDA Available: {torch.cuda.is_available()}")
-if torch.cuda.is_available():
-    print(f"🎮 GPU: {torch.cuda.get_device_name(0)}")
-    print(f"💾 GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+_config_printed = globals().get('_config_printed', False)
+if not _config_printed:
+    print(f"🖥️  Device: {DEVICE}")
+    print(f"📊 CUDA Available: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"🎮 GPU: {torch.cuda.get_device_name(0)}")
+        print(f"💾 GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+    _config_printed = True

@@ -19,7 +19,7 @@ from datetime import datetime
 from config import (
     DEVICE, BATCH_SIZE, EPOCHS, LEARNING_RATE, WEIGHT_DECAY,
     MIXED_PRECISION, ACCUMULATION_STEPS, LOG_INTERVAL, SAVE_INTERVAL,
-    MODEL_DIR, OUTPUT_DIR
+    MODEL_DIR, OUTPUT_DIR, TRAIN_DIR, TEST_DIR, RESUME_CHECKPOINT
 )
 from model import get_model
 from dataset import create_dataloaders, create_demo_dataset
@@ -284,19 +284,56 @@ class Trainer:
         return self.history
 
 
+def load_dataset_from_folders():
+    """Load image paths and labels from data/train and data/test folders"""
+    train_paths, train_labels = [], []
+    val_paths, val_labels = [], []
+    
+    # Load training data
+    for label_name, label_val in [('real', 0), ('fake', 1)]:
+        folder = os.path.join(TRAIN_DIR, label_name)
+        if not os.path.exists(folder):
+            print(f"⚠️  Warning: {folder} not found")
+            continue
+        for fname in os.listdir(folder):
+            if fname.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+                train_paths.append(os.path.join(folder, fname))
+                train_labels.append(label_val)
+    
+    # Load test/validation data
+    for label_name, label_val in [('real', 0), ('fake', 1)]:
+        folder = os.path.join(TEST_DIR, label_name)
+        if not os.path.exists(folder):
+            print(f"⚠️  Warning: {folder} not found")
+            continue
+        for fname in os.listdir(folder):
+            if fname.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+                val_paths.append(os.path.join(folder, fname))
+                val_labels.append(label_val)
+    
+    return train_paths, train_labels, val_paths, val_labels
+
+
 def main():
-    """Main training function"""
+    """Main training function with incremental fine-tuning support"""
     print("🎯 Deepfake Detection Training")
     print(f"📅 Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    # Create demo dataset for testing
-    print("\n📁 Creating demo dataset...")
-    paths, labels = create_demo_dataset(num_samples=200)
+    # Load real dataset from prepared folders
+    print("\n📁 Loading dataset from data/ folders...")
+    train_paths, train_labels, val_paths, val_labels = load_dataset_from_folders()
     
-    # Split into train/val
-    split_idx = int(len(paths) * 0.8)
-    train_paths, train_labels = paths[:split_idx], labels[:split_idx]
-    val_paths, val_labels = paths[split_idx:], labels[split_idx:]
+    if len(train_paths) == 0:
+        print("❌ No training data found in data/train/real and data/train/fake!")
+        print("   Run prepare_data.py first to extract frames.")
+        print("   Falling back to demo dataset...")
+        paths, labels = create_demo_dataset(num_samples=200)
+        split_idx = int(len(paths) * 0.8)
+        train_paths, train_labels = paths[:split_idx], labels[:split_idx]
+        val_paths, val_labels = paths[split_idx:], labels[split_idx:]
+    
+    print(f"   Train: {len(train_paths)} images (Real: {train_labels.count(0) if isinstance(train_labels, list) else sum(1 for l in train_labels if l==0)}, Fake: {train_labels.count(1) if isinstance(train_labels, list) else sum(1 for l in train_labels if l==1)})")
+    print(f"   Val:   {len(val_paths)} images (Real: {val_labels.count(0) if isinstance(val_labels, list) else sum(1 for l in val_labels if l==0)}, Fake: {val_labels.count(1) if isinstance(val_labels, list) else sum(1 for l in val_labels if l==1)})")
     
     # Create dataloaders
     print("\n📦 Creating dataloaders...")
@@ -310,6 +347,19 @@ def main():
     # Create model
     print("\n🧠 Creating model...")
     model = get_model(video_level=False)
+    
+    # Load existing checkpoint for fine-tuning
+    if RESUME_CHECKPOINT and os.path.exists(RESUME_CHECKPOINT):
+        print(f"\n🔄 Loading existing checkpoint for fine-tuning: {RESUME_CHECKPOINT}")
+        checkpoint = torch.load(RESUME_CHECKPOINT, map_location=DEVICE)
+        if 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+            print(f"   ✅ Loaded model weights (previous best acc: {checkpoint.get('best_val_acc', 'N/A')})")
+        else:
+            model.load_state_dict(checkpoint)
+            print(f"   ✅ Loaded model weights")
+    else:
+        print("\n🆕 Training from scratch (no existing checkpoint found)")
     
     # Create trainer
     trainer = Trainer(model, train_loader, val_loader)
