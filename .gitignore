@@ -1,12 +1,17 @@
+# ========================
 # Virtual Environments
+# ========================
 venv/
 venv312/
 env/
-.env/
+.env
+.env.*
 .venv/
 ENV/
 
+# ========================
 # Python
+# ========================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -27,73 +32,178 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pip-log.txt
+pip-delete-this-directory.txt
+*.manifest
+*.spec
 
-# PyTorch/ML
+# ========================
+# PyTorch / ML Model Files
+# ========================
 *.pth
 *.pt
 *.onnx
 *.h5
 *.hdf5
+*.pkl
+*.pickle
+*.joblib
+*.safetensors
+*.bin
+*.tflite
+*.pb
+models/
 
-# Data files (large datasets)
+# ========================
+# Data Files (datasets, media)
+# ========================
 data/
+datasets/
 *.mp4
 *.avi
 *.mov
 *.mkv
+*.wmv
+*.flv
+*.webm
 *.jpg
 *.jpeg
 *.png
 *.gif
 *.bmp
+*.tiff
+*.tif
+*.webp
+*.svg
+*.ico
+*.npy
+*.npz
+*.csv
+*.tsv
+*.parquet
+*.json
+!package.json
+!tsconfig.json
 
-# Output/Results
+# ========================
+# Output / Results / Logs
+# ========================
 output/
 logs/
 runs/
 checkpoints/
+results/
+tensorboard/
+wandb/
+mlruns/
+test_output.txt
 
-# Model files (keep in models/ but ignore for git)
-models/*.pth
-models/*.pt
-
-# IDE
+# ========================
+# IDE / Editor
+# ========================
 .idea/
 .vscode/
 *.swp
 *.swo
+*.sln
+*.suo
+*.user
+*.ncb
+*.aps
 *~
+.project
+.settings/
+.classpath
 
-# OS
+# ========================
+# OS Generated Files
+# ========================
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
 desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.shortcut
 
-# Jupyter
+# ========================
+# Jupyter Notebooks
+# ========================
 .ipynb_checkpoints/
 *.ipynb
 
-# Logs
+# ========================
+# Logs & Temp Files
+# ========================
 *.log
 *.out
 *.err
-
-# Temporary files
 *.tmp
 *.temp
 *.bak
+*.swp
+*.orig
+*.rej
+~$*
 
-# Coverage
+# ========================
+# Testing / Coverage
+# ========================
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
-.cache
+.cache/
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
 .pytest_cache/
+pytestdebug.log
 
-# MyPy
+# ========================
+# MyPy / Type Checking
+# ========================
 .mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# ========================
+# Distribution / Packaging
+# ========================
+*.tar.gz
+*.zip
+*.rar
+*.7z
+*.whl
+
+# ========================
+# Secrets / Credentials
+# ========================
+*.pem
+*.key
+*.crt
+*.cert
+*.env.local
+*.env.production
+secrets/
+credentials/
+
+# ========================
+# Misc
+# ========================
+*.db
+*.sqlite3
+*.dll
+*.exe
+*.o
+*.obj
+node_modules/
+.sass-cache/
+*.css.map
+.gemini/
