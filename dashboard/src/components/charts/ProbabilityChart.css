@@ -1,0 +1,64 @@
+.chart-container {
+    width: 100%;
+    padding: 24px;
+    margin-top: 24px;
+}
+
+.chart-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chart-header h3 {
+    font-family: var(--font-accent);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+}
+
+.chart-header p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.chart-body {
+    width: 100%;
+}
+
+.custom-tooltip {
+    padding: 12px 16px;
+    background: var(--bg-panel-hover);
+    border-radius: 4px;
+    border: 1px solid var(--border-focus);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+
+.custom-tooltip .label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.custom-tooltip .value {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-red);
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+    stroke: rgba(255, 255, 255, 0.05);
+}
+
+/* Remove heavy glowing effect for precise rendering */
+.recharts-curve {
+    filter: none;
+}

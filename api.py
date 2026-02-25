@@ -130,7 +130,7 @@ async def health():
 )
 async def predict_image(
     file: UploadFile = File(..., description="Image file (JPEG, PNG, WebP, BMP)"),
-    use_face_detection: bool = Query(True, description="Run face detection before classification"),
+    use_face_detection: bool = Query(False, description="Run face detection before classification"),
 ):
     """
     Upload a single image and get a deepfake prediction.
